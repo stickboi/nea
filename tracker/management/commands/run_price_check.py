@@ -37,13 +37,20 @@ class Command(BaseCommand):
         Algorithm 3: ScheduledPriceCheck
         Gets all active tracked products and checks each one.
         """
-        # Get every unique ProductRetailer that at least one user is tracking
-        active_prs = ProductRetailer.objects.filter(
-            is_active=True,
-            usertrackeditem__is_active=True
-        ).distinct().select_related('product', 'retailer')
+        # Get every unique product/retailer pair that at least one user is tracking.
+        tracked_pairs = set(
+            UserTrackedItem.objects.filter(is_active=True)
+            .values_list('product_id', 'retailer_id')
+        )
+        active_prs = ProductRetailer.objects.filter(is_active=True).select_related(
+            'product', 'retailer'
+        )
+        active_prs = [
+            pr for pr in active_prs
+            if (pr.product_id, pr.retailer_id) in tracked_pairs
+        ]
 
-        self.stdout.write(f'Found {active_prs.count()} products to check.')
+        self.stdout.write(f'Found {len(active_prs)} products to check.')
 
         for pr in active_prs:
             self.stdout.write(f"Checking: {pr.product.product_name}")
@@ -133,4 +140,3 @@ class Command(BaseCommand):
             )
         except Exception as e:
             logger.error(f"Failed to send alert to {tracked.user.email}: {e}")
-

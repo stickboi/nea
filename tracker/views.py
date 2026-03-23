@@ -122,6 +122,15 @@ def dashboard(request):
         is_active=True
     ).select_related('product', 'retailer')
 
+    product_urls = {
+        (product_id, retailer_id): product_url
+        for product_id, retailer_id, product_url in ProductRetailer.objects.filter(
+            product_id__in=tracked_items.values_list('product_id', flat=True),
+            retailer_id__in=tracked_items.values_list('retailer_id', flat=True),
+            is_active=True,
+        ).values_list('product_id', 'retailer_id', 'product_url')
+    }
+
     # Build a list of dicts with everything the template needs
     items = []
     for tracked in tracked_items:
@@ -137,13 +146,14 @@ def dashboard(request):
 
         # Green/red indicator - is the current price at or below the target?
         below_target = False
-        if current_price and tracked.desired_price:
+        if current_price is not None and tracked.desired_price is not None:
             below_target = current_price <= tracked.desired_price
 
         items.append({
             'product':       tracked.product,
             'retailer':      tracked.retailer,
             'tracked':       tracked,
+            'product_url':   product_urls.get((tracked.product_id, tracked.retailer_id), ''),
             'current_price': current_price,
             'in_stock':      in_stock,
             'last_checked':  last_checked,
@@ -303,7 +313,7 @@ def price_history(request, tracked_id):
     current_price = latest.price if latest else None
 
     below_target = False
-    if current_price and tracked.desired_price:
+    if current_price is not None and tracked.desired_price is not None:
         below_target = current_price <= tracked.desired_price
 
     context = {
