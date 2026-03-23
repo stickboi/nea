@@ -14,11 +14,9 @@ import random
 import logging
 
 from django.core.management.base import BaseCommand
-from django.core.mail import send_mail
-from django.conf import settings
 from django.utils import timezone
 
-from tracker.models import ProductRetailer, UserTrackedItem, PriceHistory
+from tracker.models import ProductRetailer, UserTrackedItem, PriceHistory, UserProfile
 from tracker.scraper import scrape_product
 
 logger = logging.getLogger(__name__)
@@ -103,10 +101,10 @@ class Command(BaseCommand):
 
             # Algorithm 3: IF currentPrice <= product.desiredPrice
             if latest.price <= tracked.desired_price:
-                self.send_alert_email(tracked, latest.price)
+                self.send_alert_notifications(tracked, latest.price)
 
-    def send_alert_email(self, tracked, current_price):
-        """Sends a price drop email alert to the user."""
+    def send_alert_notifications(self, tracked, current_price):
+        """Prints alert messages to the console."""
         product_url = ProductRetailer.objects.get(
             product=tracked.product,
             retailer=tracked.retailer
@@ -122,21 +120,18 @@ class Command(BaseCommand):
             f"Buy it here: {product_url}\n\n"
             f"-- PriceTracker"
         )
-	
-        try:
-            send_mail(
-                subject=subject,
-                message=message,
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[tracked.user.email],
-                fail_silently=False,
-            )
+
+        self.stdout.write(
+            f"EMAIL: would send {tracked.product.product_name} alert to {tracked.user.email}."
+        )
+        self.stdout.write(f"EMAIL CONTENT:\nSubject: {subject}\n{message}")
+        logger.info(
+            f"Email alert prepared for {tracked.user.email}: "
+            f"{tracked.product.product_name} at £{current_price}"
+        )
+
+        profile = UserProfile.objects.filter(user=tracked.user).first()
+        if profile and profile.user_num:
             self.stdout.write(
-                f"Alert sent to {tracked.user.email} for {tracked.product.product_name}"
+                f"SMS: would send {tracked.product.product_name} alert to {profile.user_num}."
             )
-            logger.info(
-                f"Alert sent to {tracked.user.email}: "
-                f"{tracked.product.product_name} at £{current_price}"
-            )
-        except Exception as e:
-            logger.error(f"Failed to send alert to {tracked.user.email}: {e}")
