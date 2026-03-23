@@ -1,4 +1,4 @@
-Project: fulltrack
+Project: nea
 Directory Structure:
 ├── admin.py
 ├── concat_proj.py
@@ -9,6 +9,7 @@ Directory Structure:
     ├── urls.py
     ├── wsgi.py
 ├── pricetracker_db
+├── project_combined.txt
 ├── requirements.txt
 ├── tracker/
     ├── __init__.py
@@ -85,6 +86,7 @@ class PriceHistoryAdmin(admin.ModelAdmin):
     list_filter = ('retailer', 'in_stock', 'currency')
     search_fields = ('product__product_name',)
     readonly_fields = ('timestamp',)
+
 
 --------------------------------------------------------------------------------
 
@@ -336,6 +338,7 @@ Examples:
 if __name__ == '__main__':
     main()
 
+
 --------------------------------------------------------------------------------
 
 # File: manage.py
@@ -355,14 +358,15 @@ def main():
 if __name__ == '__main__':
     main()
 
+
 --------------------------------------------------------------------------------
 
-# File: pricetracker\__init__.py
+# File: pricetracker/__init__.py
 ================================================================================
 
 --------------------------------------------------------------------------------
 
-# File: pricetracker\settings.py
+# File: pricetracker/settings.py
 ================================================================================
 """
 Django settings for pricetracker project.
@@ -463,9 +467,10 @@ EMAIL_HOST_USER = 'pricetracker.alerts@gmail.com'
 EMAIL_HOST_PASSWORD = 'your_app_password_here'
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
+
 --------------------------------------------------------------------------------
 
-# File: pricetracker\urls.py
+# File: pricetracker/urls.py
 ================================================================================
 from django.contrib import admin
 from django.urls import path, include
@@ -475,9 +480,10 @@ urlpatterns = [
     path('', include('tracker.urls')),
 ]
 
+
 --------------------------------------------------------------------------------
 
-# File: pricetracker\wsgi.py
+# File: pricetracker/wsgi.py
 ================================================================================
 import os
 from django.core.wsgi import get_wsgi_application
@@ -485,12 +491,357 @@ from django.core.wsgi import get_wsgi_application
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'pricetracker.settings')
 application = get_wsgi_application()
 
+
 --------------------------------------------------------------------------------
 
 # File: pricetracker_db
 ================================================================================
 
-# File: pricetracker_db (binary file - contents skipped)
+--------------------------------------------------------------------------------
+
+# File: project_combined.txt
+================================================================================
+Project: nea
+Directory Structure:
+├── admin.py
+├── concat_proj.py
+├── manage.py
+├── pricetracker/
+    ├── __init__.py
+    ├── settings.py
+    ├── urls.py
+    ├── wsgi.py
+├── pricetracker_db
+├── project_combined.txt
+├── requirements.txt
+├── tracker/
+    ├── __init__.py
+    ├── fixtures/
+        ├── retailers.json
+    ├── forms.py
+    ├── management/
+        ├── __init__.py
+        ├── commands/
+            ├── __init__.py
+            ├── run_price_check.py
+    ├── migrations/
+        ├── 0001_initial.py
+        ├── __init__.py
+    ├── models.py
+    ├── scraper.py
+    ├── templates/
+        ├── tracker/
+            ├── add_product.html
+            ├── base.html
+            ├── dashboard.html
+            ├── login.html
+            ├── price_history.html
+            ├── profile.html
+            ├── register.html
+    ├── urls.py
+    ├── views.py
+
+File Contents:
+================================================================================
+
+
+# File: admin.py
+================================================================================
+from django.contrib import admin
+from .models import UserProfile, Retailer, Product, ProductRetailer, UserTrackedItem, PriceHistory
+
+
+@admin.register(UserProfile)
+class UserProfileAdmin(admin.ModelAdmin):
+    list_display = ('user', 'user_num')
+    search_fields = ('user__email',)
+
+
+@admin.register(Retailer)
+class RetailerAdmin(admin.ModelAdmin):
+    list_display = ('retailer_name', 'base_url', 'is_active')
+    list_editable = ('is_active',)
+
+
+@admin.register(Product)
+class ProductAdmin(admin.ModelAdmin):
+    list_display = ('product_name', 'category', 'created_at')
+    search_fields = ('product_name',)
+
+
+@admin.register(ProductRetailer)
+class ProductRetailerAdmin(admin.ModelAdmin):
+    list_display = ('product', 'retailer', 'product_url', 'last_checked', 'is_active')
+    list_filter = ('retailer', 'is_active')
+    search_fields = ('product__product_name', 'product_url')
+
+
+@admin.register(UserTrackedItem)
+class UserTrackedItemAdmin(admin.ModelAdmin):
+    list_display = ('user', 'product', 'retailer', 'desired_price', 'date_added', 'is_active')
+    list_filter = ('retailer', 'is_active')
+    search_fields = ('user__email', 'product__product_name')
+
+
+@admin.register(PriceHistory)
+class PriceHistoryAdmin(admin.ModelAdmin):
+    list_display = ('product', 'retailer', 'price', 'timestamp', 'in_stock', 'currency')
+    list_filter = ('retailer', 'in_stock', 'currency')
+    search_fields = ('product__product_name',)
+    readonly_fields = ('timestamp',)
+
+
+--------------------------------------------------------------------------------
+
+# File: concat_proj.py
+================================================================================
+import os
+import argparse
+from pathlib import Path
+import fnmatch
+from typing import List, Set
+
+def get_file_extensions(directory: str) -> Set[str]:
+    """Get all unique file extensions in the directory."""
+    extensions = set()
+    for root, _, files in os.walk(directory):
+        for file in files:
+            ext = os.path.splitext(file)[1]
+            if ext:  # Only add non-empty extensions
+                extensions.add(ext)
+    return extensions
+
+def get_default_ignore_patterns() -> List[str]:
+    """Return common patterns to ignore across programming languages."""
+    return [
+        # Virtual Environment directories
+        '**/venv/**',         # Standard venv name
+        '**/*venv/**',        # Names like myvenv, project-venv
+        '**/env/**',          # Simple env name
+        '**/*.env/**',        # Names like project.env
+        '**/virtualenv/**',   # Full virtualenv name
+        '**/.virtualenvs/**', # Common virtualenvwrapper directory
+        '**/.venv/**',        # Hidden venv directory
+        '**/ENV/**',          # Uppercase variation
+        '**/python?env/**',   # Names like python3env, pythonenv
+        
+        # Hidden files and directories
+        '**/.*',              # All hidden files and directories
+        '**/*~',             # Backup files ending with ~
+        '**/*.~*~',          # Files like .file.~undo-tree~
+        
+        # Build and cache directories
+        '**/__pycache__/*',
+        '**/node_modules/*',
+        '**/build/*',
+        '**/dist/*',
+        '**/target/*',        # Common Java/Rust build directory
+        '**/bin/*',
+        '**/obj/*',           # Common C#/C++ build directory
+        
+        # Compiled and binary files
+        '**/*.pyc',
+        '**/*.class',
+        '**/*.o',
+        '**/*.exe',
+        '**/*.dll',
+        '**/*.so',
+        '**/*.dylib',
+        
+        # Package files
+        '**/*.jar',
+        '**/*.war',
+        '**/*.ear',
+        
+        # Compressed files
+        '**/*.zip',
+        '**/*.tar',
+        '**/*.gz',
+        '**/*.rar',
+        
+        # Editor backup files
+        '**/*~',              # Emacs/Vim backup files
+        '**/*.swp',           # Vim swap files
+        '**/*.swo',           # Vim swap files
+        '**/*.swn',           # Vim swap files
+        '**/*.bak',           # Generic backup files
+        '**/*#',              # Emacs auto-save files
+
+        # Ignore the script and its project folder
+        '**/concat_proj.py',
+        '**/concat-proj/**',
+    ]
+
+def should_include_file(file_path: str, include_patterns: List[str], ignore_patterns: List[str]) -> bool:
+    """Check if a file should be included based on patterns."""
+    # Convert file path to use forward slashes for consistent pattern matching
+    file_path = str(Path(file_path)).replace(os.sep, '/')
+    
+    # Check if the file or any of its parent directories start with a dot
+    parts = Path(file_path).parts
+    if any(part.startswith('.') for part in parts):
+        return False
+        
+    # Check if any part of the path contains 'venv' (case insensitive)
+    if any('venv' in part.lower() for part in parts):
+        return False
+        
+    # Check if the file ends with a tilde
+    if file_path.endswith('~'):
+        return False
+    
+    # First check if file matches any ignore patterns
+    for pattern in ignore_patterns:
+        if fnmatch.fnmatch(file_path, pattern):
+            return False
+    
+    # If no include patterns specified, include all non-ignored files
+    if not include_patterns:
+        return True
+    
+    # Check if file matches any include patterns
+    for pattern in include_patterns:
+        if fnmatch.fnmatch(file_path, pattern):
+            return True
+    
+    return False
+
+def get_relative_path(file_path: str, root_dir: str) -> str:
+    """Get the relative path from root directory."""
+    return os.path.relpath(file_path, root_dir)
+
+def concatenate_files(root_dir: str, output_path: str, include_patterns: List[str] = None,
+                     ignore_patterns: List[str] = None, show_structure: bool = True) -> None:
+    """
+    Concatenate files from a project directory into a single file.
+    
+    Args:
+        root_dir: Root directory of the project
+        output_path: Path for the output file
+        include_patterns: List of glob patterns for files to include
+        ignore_patterns: List of glob patterns for files to ignore
+        show_structure: Whether to show directory structure in output
+    """
+    if ignore_patterns is None:
+        ignore_patterns = get_default_ignore_patterns()
+    
+    root_dir = os.path.abspath(root_dir)
+    included_files = []
+    
+    # Collect all files that match the criteria
+    for root, _, files in os.walk(root_dir):
+        for file in files:
+            full_path = os.path.join(root, file)
+            rel_path = get_relative_path(full_path, root_dir)
+            
+            if should_include_file(rel_path, include_patterns or [], ignore_patterns):
+                included_files.append((rel_path, full_path))
+    
+    # Sort files for consistent output
+    included_files.sort()
+    
+    with open(output_path, 'w', encoding='utf-8') as outfile:
+        # Write project structure if requested
+        if show_structure:
+            outfile.write(f"Project: {os.path.basename(root_dir)}\n")
+            outfile.write("Directory Structure:\n")
+            
+            current_dirs = []
+            for rel_path, _ in included_files:
+                parts = Path(rel_path).parts
+                for i, part in enumerate(parts[:-1]):
+                    if i >= len(current_dirs):
+                        current_dirs.append(part)
+                        prefix = "    " * i
+                        outfile.write(f"{prefix}├── {part}/\n")
+                    elif current_dirs[i] != part:
+                        current_dirs[i] = part
+                        prefix = "    " * i
+                        outfile.write(f"{prefix}├── {part}/\n")
+                
+                prefix = "    " * (len(parts) - 1)
+                outfile.write(f"{prefix}├── {parts[-1]}\n")
+            
+            outfile.write("\nFile Contents:\n")
+            outfile.write("="*80 + "\n\n")
+        
+        # Write file contents
+        for rel_path, full_path in included_files:
+            try:
+                with open(full_path, 'r', encoding='utf-8') as infile:
+                    outfile.write(f"\n# File: {rel_path}\n")
+                    outfile.write("="*80 + "\n")
+                    outfile.write(infile.read())
+                    outfile.write("\n" + "-"*80 + "\n")
+            except UnicodeDecodeError:
+                outfile.write(f"\n# File: {rel_path} (binary file - contents skipped)\n")
+                outfile.write("-"*80 + "\n")
+
+def main():
+    parser = argparse.ArgumentParser(
+        description='Concatenate project files into a single file, including files from all subdirectories.',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Combine all files in current project (including subdirectories):
+  python concat_proj.py
+
+  # Combine only Python files from a specific project:
+  python concat_proj.py --root /path/to/project --include "**.py"
+
+  # Combine Python files from models directory:
+  python concat_proj.py --include "**/models/**.py"
+
+  # Combine multiple file types:
+  python concat_proj.py --include "**.py" "**.java" "**.c"
+
+  # See all file types in your project:
+  python concat_proj.py --list-extensions
+        """
+    )
+    parser.add_argument('--root', '-r', default='.',
+                      help='Root directory of the project (default: current directory)')
+    parser.add_argument('--output', '-o', default='project_combined.txt',
+                      help='Output file path (default: project_combined.txt)')
+    parser.add_argument('--include', '-i', nargs='*',
+                      help='Glob patterns for files to include (e.g., "**.py" "**.java")')
+    parser.add_argument('--ignore', '-x', nargs='*',
+                      help='Additional glob patterns for files to ignore')
+    parser.add_argument('--no-structure', action='store_true',
+                      help='Do not show directory structure in output')
+    parser.add_argument('--list-extensions', action='store_true',
+                      help='List all file extensions found in the project')
+    
+    args = parser.parse_args()
+    
+    if args.list_extensions:
+        extensions = get_file_extensions(args.root)
+        print("File extensions found in project:")
+        for ext in sorted(extensions):
+            print(f"  {ext}")
+        return
+    
+    # Combine default ignore patterns with user-provided ones
+    ignore_patterns = get_default_ignore_patterns()
+    if args.ignore:
+        ignore_patterns.extend(args.ignore)
+    
+    concatenate_files(
+        root_dir=args.root,
+        output_path=args.output,
+        include_patterns=args.include,
+        ignore_patterns=ignore_patterns,
+        show_structure=not args.no_structure
+    )
+    
+    print(f"Files have been combined into {args.output}")
+    if args.include:
+        print(f"Included patterns: {', '.join(args.include)}")
+
+if __name__ == '__main__':
+    main()
+
+
 --------------------------------------------------------------------------------
 
 # File: requirements.txt
@@ -500,14 +851,15 @@ psycopg2-binary==2.9.9
 requests==2.31.0
 beautifulsoup4==4.12.2
 
+
 --------------------------------------------------------------------------------
 
-# File: tracker\__init__.py
+# File: tracker/__init__.py
 ================================================================================
 
 --------------------------------------------------------------------------------
 
-# File: tracker\fixtures\retailers.json
+# File: tracker/fixtures/retailers.json
 ================================================================================
 [
   {
@@ -521,28 +873,10 @@ beautifulsoup4==4.12.2
   },
   {
     "model": "tracker.retailer",
-    "pk": 2,
-    "fields": {
-      "retailer_name": "Currys",
-      "base_url": "https://www.currys.co.uk",
-      "is_active": true
-    }
-  },
-  {
-    "model": "tracker.retailer",
     "pk": 3,
     "fields": {
       "retailer_name": "John Lewis",
       "base_url": "https://www.johnlewis.com",
-      "is_active": true
-    }
-  },
-  {
-    "model": "tracker.retailer",
-    "pk": 4,
-    "fields": {
-      "retailer_name": "Argos",
-      "base_url": "https://www.argos.co.uk",
       "is_active": true
     }
   }
@@ -550,7 +884,7 @@ beautifulsoup4==4.12.2
 
 --------------------------------------------------------------------------------
 
-# File: tracker\forms.py
+# File: tracker/forms.py
 ================================================================================
 from django import forms
 from django.contrib.auth.models import User
@@ -644,11 +978,11 @@ class AddProductForm(forms.Form):
     def clean_product_url(self):
         url = self.cleaned_data['product_url']
         # Validate the URL is from a supported retailer
-        supported = ['amazon.co.uk', 'currys.co.uk', 'johnlewis.com', 'argos.co.uk']
+        supported = ['amazon.co.uk', 'johnlewis.com']
         if not any(domain in url for domain in supported):
             raise forms.ValidationError(
                 "That URL isn't from a supported retailer. "
-                "We support: Amazon UK, Currys, John Lewis, and Argos."
+                "We support: Amazon UK and John Lewis."
             )
         return url
 
@@ -682,17 +1016,17 @@ class ProfileForm(forms.Form):
 
 --------------------------------------------------------------------------------
 
-# File: tracker\management\__init__.py
+# File: tracker/management/__init__.py
 ================================================================================
 
 --------------------------------------------------------------------------------
 
-# File: tracker\management\commands\__init__.py
+# File: tracker/management/commands/__init__.py
 ================================================================================
 
 --------------------------------------------------------------------------------
 
-# File: tracker\management\commands\run_price_check.py
+# File: tracker/management/commands/run_price_check.py
 ================================================================================
 """
 management/commands/run_price_check.py
@@ -710,11 +1044,9 @@ import random
 import logging
 
 from django.core.management.base import BaseCommand
-from django.core.mail import send_mail
-from django.conf import settings
 from django.utils import timezone
 
-from tracker.models import ProductRetailer, UserTrackedItem, PriceHistory
+from tracker.models import ProductRetailer, UserTrackedItem, PriceHistory, UserProfile
 from tracker.scraper import scrape_product
 
 logger = logging.getLogger(__name__)
@@ -733,13 +1065,20 @@ class Command(BaseCommand):
         Algorithm 3: ScheduledPriceCheck
         Gets all active tracked products and checks each one.
         """
-        # Get every unique ProductRetailer that at least one user is tracking
-        active_prs = ProductRetailer.objects.filter(
-            is_active=True,
-            usertrackeditem__is_active=True
-        ).distinct().select_related('product', 'retailer')
+        # Get every unique product/retailer pair that at least one user is tracking.
+        tracked_pairs = set(
+            UserTrackedItem.objects.filter(is_active=True)
+            .values_list('product_id', 'retailer_id')
+        )
+        active_prs = ProductRetailer.objects.filter(is_active=True).select_related(
+            'product', 'retailer'
+        )
+        active_prs = [
+            pr for pr in active_prs
+            if (pr.product_id, pr.retailer_id) in tracked_pairs
+        ]
 
-        self.stdout.write(f'Found {active_prs.count()} products to check.')
+        self.stdout.write(f'Found {len(active_prs)} products to check.')
 
         for pr in active_prs:
             self.stdout.write(f"Checking: {pr.product.product_name}")
@@ -773,7 +1112,7 @@ class Command(BaseCommand):
         """
         Algorithm 3: sendPriceAlert
         Finds all tracked items where the latest price is at or below
-        the user's desired price, and sends an email.
+        the user's desired price, and prints alert details to the console.
         """
         active_tracked = UserTrackedItem.objects.filter(
             is_active=True,
@@ -792,10 +1131,10 @@ class Command(BaseCommand):
 
             # Algorithm 3: IF currentPrice <= product.desiredPrice
             if latest.price <= tracked.desired_price:
-                self.send_alert_email(tracked, latest.price)
+                self.send_alert_notifications(tracked, latest.price)
 
-    def send_alert_email(self, tracked, current_price):
-        """Sends a price drop email alert to the user."""
+    def send_alert_notifications(self, tracked, current_price):
+        """Prints alert messages to the console."""
         product_url = ProductRetailer.objects.get(
             product=tracked.product,
             retailer=tracked.retailer
@@ -811,28 +1150,25 @@ class Command(BaseCommand):
             f"Buy it here: {product_url}\n\n"
             f"-- PriceTracker"
         )
-	
-        try:
-            send_mail(
-                subject=subject,
-                message=message,
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[tracked.user.email],
-                fail_silently=False,
-            )
+
+        self.stdout.write(
+            f"EMAIL: would send {tracked.product.product_name} alert to {tracked.user.email}."
+        )
+        self.stdout.write(f"EMAIL CONTENT:\nSubject: {subject}\n{message}")
+        logger.info(
+            f"Email alert prepared for {tracked.user.email}: "
+            f"{tracked.product.product_name} at £{current_price}"
+        )
+
+        profile = UserProfile.objects.filter(user=tracked.user).first()
+        if profile and profile.user_num:
             self.stdout.write(
-                f"Alert sent to {tracked.user.email} for {tracked.product.product_name}"
+                f"SMS: would send {tracked.product.product_name} alert to {profile.user_num}."
             )
-            logger.info(
-                f"Alert sent to {tracked.user.email}: "
-                f"{tracked.product.product_name} at £{current_price}"
-            )
-        except Exception as e:
-            logger.error(f"Failed to send alert to {tracked.user.email}: {e}")
 
 --------------------------------------------------------------------------------
 
-# File: tracker\migrations\0001_initial.py
+# File: tracker/migrations/0001_initial.py
 ================================================================================
 # Generated by Django 5.0 on 2026-03-16 18:55
 
@@ -924,14 +1260,15 @@ class Migration(migrations.Migration):
         ),
     ]
 
+
 --------------------------------------------------------------------------------
 
-# File: tracker\migrations\__init__.py
+# File: tracker/migrations/__init__.py
 ================================================================================
 
 --------------------------------------------------------------------------------
 
-# File: tracker\models.py
+# File: tracker/models.py
 ================================================================================
 from django.db import models
 from django.contrib.auth.models import User  # Django's built-in user model
@@ -1031,9 +1368,10 @@ class PriceHistory(models.Model):
     def __str__(self):
         return f"{self.product.product_name}: £{self.price} at {self.timestamp:%Y-%m-%d %H:%M}"
 
+
 --------------------------------------------------------------------------------
 
-# File: tracker\scraper.py
+# File: tracker/scraper.py
 ================================================================================
 """
 scraper.py
@@ -1134,38 +1472,6 @@ def scrape_amazon(url):
         return None
 
 
-def scrape_currys(url):
-    try:
-        response = requests.get(url, headers=HEADERS, timeout=10)
-        if response.status_code != 200:
-            return None
-
-        soup = BeautifulSoup(response.text, 'html.parser')
-
-        name_tag = soup.find('h1', {'class': re.compile('product-title|pdp-title', re.I)})
-        name = name_tag.get_text(strip=True) if name_tag else 'Unknown Product'
-
-        price = None
-        price_tag = soup.find('span', {'class': re.compile('price', re.I)})
-        if price_tag:
-            price = clean_price(price_tag.get_text())
-
-        image_url = None
-        img = soup.find('img', {'class': re.compile('product-image|main-image', re.I)})
-        if img:
-            image_url = img.get('src')
-
-        in_stock = not bool(soup.find(string=re.compile('out of stock', re.I)))
-
-        if not price:
-            return None
-        return ScrapedProduct(name, price, image_url, in_stock)
-
-    except requests.RequestException as e:
-        logger.error(f"Request error for {url}: {e}")
-        return None
-
-
 def scrape_john_lewis(url):
     try:
         response = requests.get(url, headers=HEADERS, timeout=10)
@@ -1198,45 +1504,9 @@ def scrape_john_lewis(url):
         return None
 
 
-def scrape_argos(url):
-    try:
-        response = requests.get(url, headers=HEADERS, timeout=10)
-        if response.status_code != 200:
-            return None
-
-        soup = BeautifulSoup(response.text, 'html.parser')
-
-        name_tag = soup.find('h1')
-        name = name_tag.get_text(strip=True) if name_tag else 'Unknown Product'
-
-        price = None
-        price_tag = soup.find(attrs={'data-test': 'product-price'})
-        if not price_tag:
-            price_tag = soup.find('strong', {'class': re.compile('price', re.I)})
-        if price_tag:
-            price = clean_price(price_tag.get_text())
-
-        image_url = None
-        img = soup.find('img', {'class': re.compile('product-image', re.I)})
-        if img:
-            image_url = img.get('src')
-
-        in_stock = not bool(soup.find(string=re.compile('out of stock', re.I)))
-
-        if not price:
-            return None
-        return ScrapedProduct(name, price, image_url, in_stock)
-
-    except requests.RequestException as e:
-        logger.error(f"Request error for {url}: {e}")
-        return None
-
-
 SCRAPER_MAP = {
     'amazon.co.uk':  scrape_amazon,
-    'currys.co.uk':  scrape_currys,
     'johnlewis.com': scrape_john_lewis,
-    'argos.co.uk':   scrape_argos,
 }
 
 
@@ -1255,7 +1525,7 @@ def is_supported_url(url):
 
 --------------------------------------------------------------------------------
 
-# File: tracker\templates\tracker\add_product.html
+# File: tracker/templates/tracker/add_product.html
 ================================================================================
 {% extends "tracker/base.html" %}
 {% block title %}Add Product - PriceTracker{% endblock %}
@@ -1269,9 +1539,7 @@ def is_supported_url(url):
 
             <div class="mb-4">
                 <span class="badge bg-warning text-dark me-1">Amazon UK</span>
-                <span class="badge bg-danger me-1">Currys</span>
                 <span class="badge bg-dark me-1">John Lewis</span>
-                <span class="badge bg-primary">Argos</span>
             </div>
 
             <form method="post" id="addForm">
@@ -1333,7 +1601,7 @@ document.getElementById('addForm').addEventListener('submit', function() {
 
 --------------------------------------------------------------------------------
 
-# File: tracker\templates\tracker\base.html
+# File: tracker/templates/tracker/base.html
 ================================================================================
 <!DOCTYPE html>
 <html lang="en">
@@ -1407,9 +1675,10 @@ document.getElementById('addForm').addEventListener('submit', function() {
 </body>
 </html>
 
+
 --------------------------------------------------------------------------------
 
-# File: tracker\templates\tracker\dashboard.html
+# File: tracker/templates/tracker/dashboard.html
 ================================================================================
 {% extends "tracker/base.html" %}
 {% block title %}Dashboard - PriceTracker{% endblock %}
@@ -1429,7 +1698,7 @@ document.getElementById('addForm').addEventListener('submit', function() {
 <div class="card text-center p-5">
     <i class="bi bi-bag-heart" style="font-size: 3rem; color: #bbb;"></i>
     <h5 class="mt-3">Nothing tracked yet</h5>
-    <p class="text-muted">Add a product URL from Amazon, Currys, John Lewis or Argos to get started.</p>
+    <p class="text-muted">Add a product URL from Amazon or John Lewis to get started.</p>
     <a href="{% url 'add_product' %}" class="btn btn-primary mt-2">Add your first product</a>
 </div>
 
@@ -1507,7 +1776,7 @@ document.getElementById('addForm').addEventListener('submit', function() {
                    class="btn btn-sm btn-outline-secondary flex-fill">
                     <i class="bi bi-graph-up"></i> History
                 </a>
-                <a href="{{ item.tracked.product_retailer.product_url }}" target="_blank"
+                <a href="{{ item.product_url }}" target="_blank"
                    class="btn btn-sm btn-outline-dark flex-fill">
                     <i class="bi bi-box-arrow-up-right"></i> View
                 </a>
@@ -1561,7 +1830,7 @@ document.querySelectorAll('.update-price-form').forEach(function(form) {
 
 --------------------------------------------------------------------------------
 
-# File: tracker\templates\tracker\login.html
+# File: tracker/templates/tracker/login.html
 ================================================================================
 {% extends "tracker/base.html" %}
 {% block title %}Login - PriceTracker{% endblock %}
@@ -1599,9 +1868,10 @@ document.querySelectorAll('.update-price-form').forEach(function(form) {
 </div>
 {% endblock %}
 
+
 --------------------------------------------------------------------------------
 
-# File: tracker\templates\tracker\price_history.html
+# File: tracker/templates/tracker/price_history.html
 ================================================================================
 {% extends "tracker/base.html" %}
 {% block title %}Price History - {{ tracked.product.product_name|truncatechars:40 }}{% endblock %}
@@ -1740,9 +2010,10 @@ new Chart(ctx, {
 </script>
 {% endblock %}
 
+
 --------------------------------------------------------------------------------
 
-# File: tracker\templates\tracker\profile.html
+# File: tracker/templates/tracker/profile.html
 ================================================================================
 {% extends "tracker/base.html" %}
 {% block title %}Profile - PriceTracker{% endblock %}
@@ -1802,9 +2073,10 @@ new Chart(ctx, {
 </div>
 {% endblock %}
 
+
 --------------------------------------------------------------------------------
 
-# File: tracker\templates\tracker\register.html
+# File: tracker/templates/tracker/register.html
 ================================================================================
 {% extends "tracker/base.html" %}
 {% block title %}Register - PriceTracker{% endblock %}
@@ -1850,9 +2122,10 @@ new Chart(ctx, {
 </div>
 {% endblock %}
 
+
 --------------------------------------------------------------------------------
 
-# File: tracker\urls.py
+# File: tracker/urls.py
 ================================================================================
 from django.urls import path
 from . import views
@@ -1870,9 +2143,10 @@ urlpatterns = [
     path('profile/',            views.profile,             name='profile'),
 ]
 
+
 --------------------------------------------------------------------------------
 
-# File: tracker\views.py
+# File: tracker/views.py
 ================================================================================
 """
 views.py
@@ -1998,6 +2272,15 @@ def dashboard(request):
         is_active=True
     ).select_related('product', 'retailer')
 
+    product_urls = {
+        (product_id, retailer_id): product_url
+        for product_id, retailer_id, product_url in ProductRetailer.objects.filter(
+            product_id__in=tracked_items.values_list('product_id', flat=True),
+            retailer_id__in=tracked_items.values_list('retailer_id', flat=True),
+            is_active=True,
+        ).values_list('product_id', 'retailer_id', 'product_url')
+    }
+
     # Build a list of dicts with everything the template needs
     items = []
     for tracked in tracked_items:
@@ -2013,13 +2296,14 @@ def dashboard(request):
 
         # Green/red indicator - is the current price at or below the target?
         below_target = False
-        if current_price and tracked.desired_price:
+        if current_price is not None and tracked.desired_price is not None:
             below_target = current_price <= tracked.desired_price
 
         items.append({
             'product':       tracked.product,
             'retailer':      tracked.retailer,
             'tracked':       tracked,
+            'product_url':   product_urls.get((tracked.product_id, tracked.retailer_id), ''),
             'current_price': current_price,
             'in_stock':      in_stock,
             'last_checked':  last_checked,
@@ -2179,7 +2463,7 @@ def price_history(request, tracked_id):
     current_price = latest.price if latest else None
 
     below_target = False
-    if current_price and tracked.desired_price:
+    if current_price is not None and tracked.desired_price is not None:
         below_target = current_price <= tracked.desired_price
 
     context = {

@@ -10,30 +10,11 @@
   },
   {
     "model": "tracker.retailer",
-    "pk": 2,
-    "fields": {
-      "retailer_name": "Currys",
-      "base_url": "https://www.currys.co.uk",
-      "is_active": true
-    }
-  },
-  {
-    "model": "tracker.retailer",
     "pk": 3,
     "fields": {
       "retailer_name": "John Lewis",
       "base_url": "https://www.johnlewis.com",
       "is_active": true
     }
-  },
-  {
-    "model": "tracker.retailer",
-    "pk": 4,
-    "fields": {
-      "retailer_name": "Argos",
-      "base_url": "https://www.argos.co.uk",
-      "is_active": true
-    }
   }
 ]
-

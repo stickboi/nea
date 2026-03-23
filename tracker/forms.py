@@ -90,11 +90,11 @@ class AddProductForm(forms.Form):
     def clean_product_url(self):
         url = self.cleaned_data['product_url']
         # Validate the URL is from a supported retailer
-        supported = ['amazon.co.uk', 'currys.co.uk', 'johnlewis.com', 'argos.co.uk']
+        supported = ['amazon.co.uk', 'johnlewis.com']
         if not any(domain in url for domain in supported):
             raise forms.ValidationError(
                 "That URL isn't from a supported retailer. "
-                "We support: Amazon UK, Currys, John Lewis, and Argos."
+                "We support: Amazon UK and John Lewis."
             )
         return url
 
@@ -125,4 +125,3 @@ class ProfileForm(forms.Form):
             if not num.isdigit() or len(num) != 11:
                 raise forms.ValidationError("Phone number must be exactly 11 digits.")
         return num or None
-

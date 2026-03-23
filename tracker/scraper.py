@@ -97,38 +97,6 @@ def scrape_amazon(url):
         return None
 
 
-def scrape_currys(url):
-    try:
-        response = requests.get(url, headers=HEADERS, timeout=10)
-        if response.status_code != 200:
-            return None
-
-        soup = BeautifulSoup(response.text, 'html.parser')
-
-        name_tag = soup.find('h1', {'class': re.compile('product-title|pdp-title', re.I)})
-        name = name_tag.get_text(strip=True) if name_tag else 'Unknown Product'
-
-        price = None
-        price_tag = soup.find('span', {'class': re.compile('price', re.I)})
-        if price_tag:
-            price = clean_price(price_tag.get_text())
-
-        image_url = None
-        img = soup.find('img', {'class': re.compile('product-image|main-image', re.I)})
-        if img:
-            image_url = img.get('src')
-
-        in_stock = not bool(soup.find(string=re.compile('out of stock', re.I)))
-
-        if not price:
-            return None
-        return ScrapedProduct(name, price, image_url, in_stock)
-
-    except requests.RequestException as e:
-        logger.error(f"Request error for {url}: {e}")
-        return None
-
-
 def scrape_john_lewis(url):
     try:
         response = requests.get(url, headers=HEADERS, timeout=10)
@@ -161,45 +129,9 @@ def scrape_john_lewis(url):
         return None
 
 
-def scrape_argos(url):
-    try:
-        response = requests.get(url, headers=HEADERS, timeout=10)
-        if response.status_code != 200:
-            return None
-
-        soup = BeautifulSoup(response.text, 'html.parser')
-
-        name_tag = soup.find('h1')
-        name = name_tag.get_text(strip=True) if name_tag else 'Unknown Product'
-
-        price = None
-        price_tag = soup.find(attrs={'data-test': 'product-price'})
-        if not price_tag:
-            price_tag = soup.find('strong', {'class': re.compile('price', re.I)})
-        if price_tag:
-            price = clean_price(price_tag.get_text())
-
-        image_url = None
-        img = soup.find('img', {'class': re.compile('product-image', re.I)})
-        if img:
-            image_url = img.get('src')
-
-        in_stock = not bool(soup.find(string=re.compile('out of stock', re.I)))
-
-        if not price:
-            return None
-        return ScrapedProduct(name, price, image_url, in_stock)
-
-    except requests.RequestException as e:
-        logger.error(f"Request error for {url}: {e}")
-        return None
-
-
 SCRAPER_MAP = {
     'amazon.co.uk':  scrape_amazon,
-    'currys.co.uk':  scrape_currys,
     'johnlewis.com': scrape_john_lewis,
-    'argos.co.uk':   scrape_argos,
 }
 
 
@@ -215,4 +147,3 @@ def scrape_product(url):
 
 def is_supported_url(url):
     return any(domain in url for domain in SCRAPER_MAP)
-
