@@ -82,7 +82,7 @@ class Command(BaseCommand):
         """
         Algorithm 3: sendPriceAlert
         Finds all tracked items where the latest price is at or below
-        the user's desired price, and sends an email.
+        the user's desired price, and prints alert details to the console.
         """
         active_tracked = UserTrackedItem.objects.filter(
             is_active=True,
